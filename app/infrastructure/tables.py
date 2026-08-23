@@ -3,11 +3,20 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Float, Integer, String, Text, func
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import DateTime, Float, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.database import Base
+
+
+class UserRecord(Base):
+    __tablename__ = "users"
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class CandidateRecord(Base):
@@ -19,6 +28,16 @@ class CandidateRecord(Base):
     profile_text: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class CandidateChunkRecord(Base):
+    __tablename__ = "candidate_chunks"
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    candidate_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), index=True)
+    content: Mapped[str] = mapped_column(Text)
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(1536))
+    metadata: Mapped[dict] = mapped_column(JSONB, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class JobRecord(Base):
