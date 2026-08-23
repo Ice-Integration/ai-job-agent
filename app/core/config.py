@@ -9,7 +9,10 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     openai_api_key: str = ""
     openai_model: str = "gpt-5.6-luna"
-    cors_origins: str = "http://localhost:3000"
+    embedding_model: str = "text-embedding-3-small"
+    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+    max_upload_bytes: int = 5_000_000
+    job_search_limit: int = 50
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
