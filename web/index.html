@@ -1,9 +1,22 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Job Agent</title>
-  <style>body{font-family:Inter,system-ui,sans-serif;margin:0;background:#f6f7fb;color:#111827}.wrap{max-width:1100px;margin:40px auto;padding:0 24px}.card{background:white;border:1px solid #e5e7eb;border-radius:16px;padding:24px;margin-top:20px}.score{font-size:42px;font-weight:800}.muted{color:#6b7280}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}</style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Job Agent</title>
+<style>
+body{font-family:Inter,system-ui,sans-serif;margin:0;background:#f5f7fb;color:#111827}.wrap{max-width:1180px;margin:32px auto;padding:0 20px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:22px;margin-top:16px;box-shadow:0 4px 20px #00000008}.score{font-size:40px;font-weight:800}.muted{color:#6b7280}input,textarea,button{font:inherit;width:100%;box-sizing:border-box;padding:11px;border:1px solid #d1d5db;border-radius:9px;margin-top:8px}textarea{min-height:180px}button{cursor:pointer;background:#111827;color:white}.result{white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:10px;margin-top:12px}.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#eef2ff;margin:3px}
+</style>
 </head>
-<body><main class="wrap"><h1>AI Job Agent</h1><p class="muted">Evidence-backed job discovery and qualification.</p><div class="grid"><section class="card"><div class="muted">Jobs analyzed</div><div class="score">0</div></section><section class="card"><div class="muted">Strong matches</div><div class="score">0</div></section><section class="card"><div class="muted">Applications</div><div class="score">0</div></section></div><section class="card"><h2>Pipeline</h2><p>Candidate → Discovery → Qualification → Research → Tailoring → Human approval → Application → Feedback</p></section></main></body></html>
+<body><main class="wrap">
+<h1>AI Job Agent</h1><p class="muted">Evidence-backed job discovery, qualification and application preparation.</p>
+<div class="grid"><section class="card"><div class="muted">Architecture</div><h3>Candidate Intelligence</h3><p>CV → profile → job matching → evidence → application.</p></section><section class="card"><div class="muted">Safety</div><h3>Human Approval</h3><p>Applications cannot move to applied without explicit approval.</p></section><section class="card"><div class="muted">Eligibility</div><h3>Nigeria + Sponsorship</h3><p>Remote eligibility and visa sponsorship are evaluated separately.</p></section></div>
+<section class="card"><h2>Score a Job</h2><label>Job title<input id="title" value="Senior Python Backend Engineer"></label><label>Company<input id="company" value="Example"></label><label>Job description<textarea id="description">Build Python FastAPI services with PostgreSQL, Docker, Pytest and REST APIs. Remote in Nigeria.</textarea></label><button onclick="score()">Analyze opportunity</button><div id="result"></div></section>
+<section class="card"><h2>Application pipeline</h2><div id="apps" class="muted">Loading...</div></section>
+</main>
+<script>
+const api=location.protocol==='file:'?'http://localhost:8000':'http://'+location.hostname+':8000';
+async function score(){const body={candidate:{name:'Austin Benjamin',target_roles:['Senior Python Backend Engineer','Backend Engineer','AI Engineer'],skills:['Python','FastAPI','PostgreSQL','Docker','Pytest','REST','Microservices','SQL'],years_experience:5,remote_from_nigeria:true,requires_sponsorship:true},job:{title:document.getElementById('title').value,company:document.getElementById('company').value,description:document.getElementById('description').value,remote:true,remote_countries:['Nigeria'],sponsorship:'NOT_REQUIRED',source:'dashboard'}};const r=await fetch(api+'/api/v1/jobs/score',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});document.getElementById('result').textContent=r.ok?JSON.stringify(await r.json(),null,2):await r.text()}
+async function loadApps(){try{const r=await fetch(api+'/api/v1/applications');const data=await r.json();document.getElementById('apps').innerHTML=data.length?data.map(x=>`<div class="pill">${x.status} · ${x.match_score}%</div>`).join(''):'No applications yet.'}catch(e){document.getElementById('apps').textContent='API unavailable. Start FastAPI on port 8000.'}}
+loadApps();
+</script></body></html>
