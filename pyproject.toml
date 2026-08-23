@@ -1,6 +1,6 @@
 [project]
 name = "ai-job-agent"
-version = "0.5.0"
+version = "0.6.0"
 description = "Evidence-backed AI agent for job discovery, qualification and application preparation"
 requires-python = ">=3.12"
 dependencies = [
@@ -22,7 +22,8 @@ dependencies = [
   "opentelemetry-sdk>=1.31,<2",
   "pgvector>=0.3,<1",
   "PyJWT>=2.10,<3",
-  "pwdlib[argon2]>=0.2,<1"
+  "pwdlib[argon2]>=0.2,<1",
+  "apscheduler>=3.11,<4"
 ]
 
 [project.optional-dependencies]
