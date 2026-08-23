@@ -13,6 +13,10 @@ class LLMAnalysis(BaseModel):
     factuality_confidence: float = Field(ge=0, le=1)
 
 
+class GeneratedText(BaseModel):
+    content: str
+
+
 class JobAnalyzer:
     def __init__(self) -> None:
         settings = get_settings()
@@ -25,18 +29,38 @@ class JobAnalyzer:
         response = await self.client.responses.parse(
             model=self.model,
             input=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a factual job qualification analyst. Never invent candidate "
-                        "experience. Distinguish unknown sponsorship from confirmed sponsorship."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": f"CANDIDATE:\n{candidate.model_dump_json()}\nJOB:\n{job.model_dump_json()}",
-                },
+                {"role": "system", "content": (
+                    "You are a factual job qualification analyst. Never invent candidate experience. "
+                    "Separate confirmed facts from unknowns. Treat sponsorship as unknown unless evidence supports it."
+                )},
+                {"role": "user", "content": f"CANDIDATE:\n{candidate.model_dump_json()}\nJOB:\n{job.model_dump_json()}"},
             ],
             text_format=LLMAnalysis,
         )
         return response.output_parsed
+
+    async def generate_resume(self, candidate: Candidate, job: Job) -> str:
+        return await self._generate(
+            "Create an ATS-friendly resume draft using only facts in the candidate profile. "
+            "Prioritize evidence relevant to the target job. Never invent metrics, employers, dates, skills, or certifications.",
+            candidate, job,
+        )
+
+    async def generate_cover_letter(self, candidate: Candidate, job: Job) -> str:
+        return await self._generate(
+            "Write a concise, specific cover letter for this job using only candidate-provided facts. "
+            "Do not invent company knowledge or experience.", candidate, job,
+        )
+
+    async def _generate(self, instruction: str, candidate: Candidate, job: Job) -> str:
+        if not self.client:
+            return ""
+        response = await self.client.responses.parse(
+            model=self.model,
+            input=[
+                {"role": "system", "content": instruction},
+                {"role": "user", "content": f"CANDIDATE:\n{candidate.model_dump_json()}\nJOB:\n{job.model_dump_json()}"},
+            ],
+            text_format=GeneratedText,
+        )
+        return response.output_parsed.content
