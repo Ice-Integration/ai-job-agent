@@ -1,18 +1,20 @@
 [
   {
-    "name": "nigeria_remote_backend",
+    "name": "nigeria_remote_python_backend",
     "expected_decision": "APPLY",
-    "candidate_skills": ["python", "fastapi", "postgresql", "docker"],
-    "job_title": "Senior Python Backend Engineer",
-    "job_description": "Python FastAPI PostgreSQL Docker",
-    "remote_countries": ["Nigeria"]
+    "candidate_skills": ["Python", "FastAPI", "PostgreSQL", "Docker", "Pytest"],
+    "job": {"title": "Senior Python Backend Engineer", "description": "Python FastAPI PostgreSQL Docker Pytest", "remote": true, "remote_countries": ["Nigeria"], "sponsorship": "NOT_REQUIRED"}
   },
   {
-    "name": "us_authorization_only",
+    "name": "us_only_no_sponsorship",
     "expected_decision": "REJECT",
-    "candidate_skills": ["python"],
-    "job_title": "Python Engineer",
-    "job_description": "Python. Must be authorized to work in the United States.",
-    "remote_countries": ["United States"]
+    "candidate_skills": ["Python", "FastAPI"],
+    "job": {"title": "Backend Engineer", "description": "Python backend", "remote": true, "remote_countries": ["United States"], "sponsorship": "NO"}
+  },
+  {
+    "name": "partial_match_requires_research",
+    "expected_decision": "INVESTIGATE",
+    "candidate_skills": ["Python", "FastAPI", "PostgreSQL"],
+    "job": {"title": "Backend Engineer", "description": "Python FastAPI PostgreSQL Kubernetes", "remote": true, "remote_countries": ["Nigeria"], "sponsorship": "UNKNOWN"}
   }
 ]
