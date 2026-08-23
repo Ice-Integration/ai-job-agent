@@ -15,6 +15,6 @@
     "name": "partial_match_requires_research",
     "expected_decision": "INVESTIGATE",
     "candidate_skills": ["Python", "FastAPI", "PostgreSQL"],
-    "job": {"title": "Backend Engineer", "description": "Python FastAPI PostgreSQL Kubernetes", "remote": true, "remote_countries": ["Nigeria"], "sponsorship": "UNKNOWN"}
+    "job": {"title": "Backend Engineer", "description": "Python FastAPI Kubernetes", "remote": true, "remote_countries": ["Nigeria"], "sponsorship": "UNKNOWN"}
   }
 ]
