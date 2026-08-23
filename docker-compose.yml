@@ -10,6 +10,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    volumes:
+      - document_data:/var/lib/ai-job-agent/documents
 
   worker:
     build: .
@@ -20,6 +22,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    volumes:
+      - document_data:/var/lib/ai-job-agent/documents
 
   db:
     image: pgvector/pgvector:pg17
@@ -44,3 +48,4 @@ services:
 
 volumes:
   postgres_data:
+  document_data:

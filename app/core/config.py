@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
     max_upload_bytes: int = 5_000_000
+    document_storage_path: str = "/var/lib/ai-job-agent/documents"
+    rate_limit_requests: int = 60
+    rate_limit_window_seconds: int = 60
     job_search_limit: int = 50
     jwt_secret: str = "change-me-in-production-use-a-32-byte-minimum-secret"
     jwt_algorithm: str = "HS256"

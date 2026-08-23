@@ -7,6 +7,20 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: jobagent
+          POSTGRES_USER: jobagent
+          POSTGRES_PASSWORD: jobagent
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U jobagent -d jobagent"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -14,4 +28,7 @@ jobs:
           python-version: "3.12"
       - run: pip install -e '.[dev]'
       - run: ruff check .
+      - run: alembic upgrade head
+        env:
+          DATABASE_URL: postgresql+asyncpg://jobagent:jobagent@localhost:5432/jobagent
       - run: pytest -q

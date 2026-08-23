@@ -4,7 +4,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, Float, String, Text, func
+from sqlalchemy import DateTime, Float, ForeignKey, Index, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -23,6 +23,7 @@ class UserRecord(Base):
 class CandidateRecord(Base):
     __tablename__ = "candidates"
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(200))
     location: Mapped[str] = mapped_column(String(120), default="Nigeria")
     profile: Mapped[dict] = mapped_column(JSONB, default=dict)
@@ -34,7 +35,7 @@ class CandidateRecord(Base):
 class CandidateChunkRecord(Base):
     __tablename__ = "candidate_chunks"
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
-    candidate_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), index=True)
+    candidate_id: Mapped[UUID] = mapped_column(ForeignKey("candidates.id", ondelete="CASCADE"), index=True)
     content: Mapped[str] = mapped_column(Text)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(1536))
     chunk_metadata: Mapped[dict] = mapped_column("metadata", JSONB, default=dict)
@@ -43,12 +44,14 @@ class CandidateChunkRecord(Base):
 
 class JobRecord(Base):
     __tablename__ = "jobs"
+    __table_args__ = (UniqueConstraint("dedupe_key", name="uq_jobs_dedupe_key"),)
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
     title: Mapped[str] = mapped_column(String(300))
     company: Mapped[str] = mapped_column(String(300))
     description: Mapped[str] = mapped_column(Text)
     source: Mapped[str | None] = mapped_column(String(120))
     application_url: Mapped[str | None] = mapped_column(Text)
+    dedupe_key: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     attributes: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -56,13 +59,27 @@ class JobRecord(Base):
 class ApplicationRecord(Base):
     __tablename__ = "applications"
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
-    candidate_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), index=True)
-    job_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), index=True)
+    candidate_id: Mapped[UUID] = mapped_column(ForeignKey("candidates.id", ondelete="CASCADE"), index=True)
+    job_id: Mapped[UUID] = mapped_column(ForeignKey("jobs.id", ondelete="RESTRICT"), index=True)
     status: Mapped[str] = mapped_column(String(40), default="READY", index=True)
     match_score: Mapped[float] = mapped_column(Float, default=0)
     package: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+Index("ix_applications_candidate_status", ApplicationRecord.candidate_id, ApplicationRecord.status)
+
+
+class DocumentRecord(Base):
+    __tablename__ = "documents"
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
+    candidate_id: Mapped[UUID] = mapped_column(ForeignKey("candidates.id", ondelete="CASCADE"), index=True)
+    storage_key: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    content_type: Mapped[str] = mapped_column(String(120), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class EvaluationRecord(Base):

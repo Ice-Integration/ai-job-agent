@@ -5,6 +5,8 @@ import os
 import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from app.infrastructure.database import SessionLocal
+from app.services.persistence import save_job
 from app.workers.discovery import discover_jobs
 
 log = structlog.get_logger()
@@ -17,7 +19,10 @@ async def scheduled_discovery() -> None:
         "python backend engineer,senior python backend,AI backend engineer,software engineer",
     )
     queries = [item.strip() for item in raw_queries.split(",") if item.strip()]
-    await discover_jobs(endpoint, queries, int(os.getenv("JOB_DISCOVERY_LIMIT", "20")))
+    jobs = await discover_jobs(endpoint, queries, int(os.getenv("JOB_DISCOVERY_LIMIT", "20")))
+    async with SessionLocal() as session:
+        for job in jobs:
+            await save_job(session, job)
 
 
 def build_scheduler() -> AsyncIOScheduler:
