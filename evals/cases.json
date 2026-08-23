@@ -1,0 +1,18 @@
+[
+  {
+    "name": "nigeria_remote_backend",
+    "expected_decision": "APPLY",
+    "candidate_skills": ["python", "fastapi", "postgresql", "docker"],
+    "job_title": "Senior Python Backend Engineer",
+    "job_description": "Python FastAPI PostgreSQL Docker",
+    "remote_countries": ["Nigeria"]
+  },
+  {
+    "name": "us_authorization_only",
+    "expected_decision": "REJECT",
+    "candidate_skills": ["python"],
+    "job_title": "Python Engineer",
+    "job_description": "Python. Must be authorized to work in the United States.",
+    "remote_countries": ["United States"]
+  }
+]
