@@ -2,22 +2,25 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from pydantic import BaseModel, HttpUrl
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.qualification import score_job
+from app.core.auth import require_bearer
 from app.domain.models import Candidate, Job, JobScore
 from app.infrastructure.database import get_db
 from app.services.applications import approve_application, create_application, get_application, list_applications, mark_applied
+from app.services.authentication import authenticate_user, register_user
 from app.services.documents import extract_candidate_signals, extract_text
 from app.services.generation import generate_cover_letter, generate_resume
 from app.services.job_sources import RemoteJobsSource
 from app.services.llm import JobAnalyzer
 from app.services.persistence import save_candidate, save_job
+from app.services.rag import CandidateRAG
 from app.services.web_research import fetch_job_url
 
-app = FastAPI(title="AI Job Agent", version="0.4.0")
+app = FastAPI(title="AI Job Agent", version="0.5.0")
 candidates: dict[str, Candidate] = {}
 
 
@@ -42,20 +45,44 @@ class JobURLRequest(BaseModel):
     url: HttpUrl
 
 
+class AuthRequest(BaseModel):
+    email: str
+    password: str
+
+
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok", "service": "ai-job-agent"}
 
 
+@app.post("/api/v1/auth/register")
+async def register(request: AuthRequest, db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    if len(request.password) < 12:
+        raise HTTPException(status_code=422, detail="Password must contain at least 12 characters")
+    try:
+        token = await register_user(db, request.email, request.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"access_token": token, "token_type": "bearer"}
+
+
+@app.post("/api/v1/auth/login")
+async def login(request: AuthRequest, db: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    token = await authenticate_user(db, request.email, request.password)
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    return {"access_token": token, "token_type": "bearer"}
+
+
 @app.post("/api/v1/candidates", response_model=Candidate)
-async def create_candidate(candidate: Candidate, db: AsyncSession = Depends(get_db)) -> Candidate:
+async def create_candidate(candidate: Candidate, db: AsyncSession = Depends(get_db), _: str = Depends(require_bearer)) -> Candidate:
     candidates[str(candidate.id)] = candidate
     await save_candidate(db, candidate)
     return candidate
 
 
 @app.get("/api/v1/candidates/{candidate_id}", response_model=Candidate)
-async def get_candidate(candidate_id: str) -> Candidate:
+async def get_candidate(candidate_id: str, _: str = Depends(require_bearer)) -> Candidate:
     candidate = candidates.get(candidate_id)
     if not candidate:
         raise HTTPException(status_code=404, detail="Candidate not found")
@@ -63,29 +90,26 @@ async def get_candidate(candidate_id: str) -> Candidate:
 
 
 @app.post("/api/v1/candidates/import", response_model=Candidate)
-async def import_cv(file: UploadFile = File(...), db: AsyncSession = Depends(get_db)) -> Candidate:
+async def import_cv(file: UploadFile = File(...), db: AsyncSession = Depends(get_db), _: str = Depends(require_bearer)) -> Candidate:
     data = await file.read()
     text = extract_text(file.filename or "cv.txt", data)
     signals = extract_candidate_signals(text)
-    candidate = Candidate(
-        name="Imported Candidate",
-        skills=list(signals["skills"]),
-        profile_text=str(signals["profile_text"]),
-    )
+    candidate = Candidate(name="Imported Candidate", skills=list(signals["skills"]), profile_text=str(signals["profile_text"]))
     candidates[str(candidate.id)] = candidate
     await save_candidate(db, candidate)
+    await CandidateRAG().index(db, candidate.id, candidate.profile_text)
     return candidate
 
 
 @app.post("/api/v1/jobs/from-url", response_model=Job)
-async def job_from_url(request: JobURLRequest, db: AsyncSession = Depends(get_db)) -> Job:
+async def job_from_url(request: JobURLRequest, db: AsyncSession = Depends(get_db), _: str = Depends(require_bearer)) -> Job:
     job = await fetch_job_url(str(request.url))
     await save_job(db, job)
     return job
 
 
 @app.post("/api/v1/jobs/discover", response_model=list[Job])
-async def discover(request: DiscoverRequest, db: AsyncSession = Depends(get_db)) -> list[Job]:
+async def discover(request: DiscoverRequest, db: AsyncSession = Depends(get_db), _: str = Depends(require_bearer)) -> list[Job]:
     jobs = await RemoteJobsSource(str(request.endpoint)).search(request.query, request.limit)
     for job in jobs:
         await save_job(db, job)
@@ -93,7 +117,7 @@ async def discover(request: DiscoverRequest, db: AsyncSession = Depends(get_db))
 
 
 @app.post("/api/v1/jobs/score", response_model=JobScore)
-async def score(request: ScoreRequest) -> JobScore:
+async def score(request: ScoreRequest, _: str = Depends(require_bearer)) -> JobScore:
     result = score_job(request.candidate, request.job)
     analysis = await JobAnalyzer().analyze(request.candidate, request.job)
     if analysis:
@@ -104,19 +128,19 @@ async def score(request: ScoreRequest) -> JobScore:
 
 
 @app.post("/api/v1/applications/prepare")
-async def prepare_application(request: ApplicationCreate):
+async def prepare_application(request: ApplicationCreate, _: str = Depends(require_bearer)):
     resume = await generate_resume(request.candidate, request.job)
     cover_letter = await generate_cover_letter(request.candidate, request.job)
     return create_application(request.candidate.id, request.job.id, request.score.overall, resume, cover_letter)
 
 
 @app.get("/api/v1/applications")
-async def applications():
+async def applications(_: str = Depends(require_bearer)):
     return list_applications()
 
 
 @app.get("/api/v1/applications/{application_id}")
-async def application(application_id: UUID):
+async def application(application_id: UUID, _: str = Depends(require_bearer)):
     item = get_application(application_id)
     if not item:
         raise HTTPException(status_code=404, detail="Application not found")
@@ -124,7 +148,7 @@ async def application(application_id: UUID):
 
 
 @app.post("/api/v1/applications/{application_id}/approve")
-async def approve(application_id: UUID):
+async def approve(application_id: UUID, _: str = Depends(require_bearer)):
     try:
         return approve_application(application_id)
     except (KeyError, ValueError) as exc:
@@ -132,7 +156,7 @@ async def approve(application_id: UUID):
 
 
 @app.post("/api/v1/applications/{application_id}/mark-applied")
-async def applied(application_id: UUID):
+async def applied(application_id: UUID, _: str = Depends(require_bearer)):
     try:
         return mark_applied(application_id)
     except (KeyError, ValueError) as exc:
