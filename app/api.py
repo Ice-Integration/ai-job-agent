@@ -2,19 +2,22 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from pydantic import BaseModel, HttpUrl
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.qualification import score_job
 from app.domain.models import Candidate, Job, JobScore
+from app.infrastructure.database import get_db
 from app.services.applications import approve_application, create_application, get_application, list_applications, mark_applied
 from app.services.documents import extract_candidate_signals, extract_text
 from app.services.generation import generate_cover_letter, generate_resume
 from app.services.job_sources import RemoteJobsSource
 from app.services.llm import JobAnalyzer
+from app.services.persistence import save_candidate, save_job
 from app.services.web_research import fetch_job_url
 
-app = FastAPI(title="AI Job Agent", version="0.3.0")
+app = FastAPI(title="AI Job Agent", version="0.4.0")
 candidates: dict[str, Candidate] = {}
 
 
@@ -45,8 +48,9 @@ async def health() -> dict[str, str]:
 
 
 @app.post("/api/v1/candidates", response_model=Candidate)
-async def create_candidate(candidate: Candidate) -> Candidate:
+async def create_candidate(candidate: Candidate, db: AsyncSession = Depends(get_db)) -> Candidate:
     candidates[str(candidate.id)] = candidate
+    await save_candidate(db, candidate)
     return candidate
 
 
@@ -58,24 +62,34 @@ async def get_candidate(candidate_id: str) -> Candidate:
     return candidate
 
 
-@app.post("/api/v1/candidates/import")
-async def import_cv(file: UploadFile = File(...)) -> Candidate:
+@app.post("/api/v1/candidates/import", response_model=Candidate)
+async def import_cv(file: UploadFile = File(...), db: AsyncSession = Depends(get_db)) -> Candidate:
     data = await file.read()
     text = extract_text(file.filename or "cv.txt", data)
     signals = extract_candidate_signals(text)
-    candidate = Candidate(name="Imported Candidate", skills=list(signals["skills"]), profile_text=str(signals["profile_text"]))
+    candidate = Candidate(
+        name="Imported Candidate",
+        skills=list(signals["skills"]),
+        profile_text=str(signals["profile_text"]),
+    )
     candidates[str(candidate.id)] = candidate
+    await save_candidate(db, candidate)
     return candidate
 
 
 @app.post("/api/v1/jobs/from-url", response_model=Job)
-async def job_from_url(request: JobURLRequest) -> Job:
-    return await fetch_job_url(str(request.url))
+async def job_from_url(request: JobURLRequest, db: AsyncSession = Depends(get_db)) -> Job:
+    job = await fetch_job_url(str(request.url))
+    await save_job(db, job)
+    return job
 
 
 @app.post("/api/v1/jobs/discover", response_model=list[Job])
-async def discover(request: DiscoverRequest) -> list[Job]:
-    return await RemoteJobsSource(str(request.endpoint)).search(request.query, request.limit)
+async def discover(request: DiscoverRequest, db: AsyncSession = Depends(get_db)) -> list[Job]:
+    jobs = await RemoteJobsSource(str(request.endpoint)).search(request.query, request.limit)
+    for job in jobs:
+        await save_job(db, job)
+    return jobs
 
 
 @app.post("/api/v1/jobs/score", response_model=JobScore)
