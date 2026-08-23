@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 from fastapi import Depends, HTTPException, status
@@ -6,7 +6,6 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pwdlib import PasswordHash
 
 from app.core.config import get_settings
-
 
 password_hash = PasswordHash.recommended()
 bearer = HTTPBearer(auto_error=False)
@@ -22,7 +21,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 def create_access_token(subject: str, expires_minutes: int = 60) -> str:
     settings = get_settings()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {"sub": subject, "iat": now, "exp": now + timedelta(minutes=expires_minutes)}
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from uuid import UUID
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.models import Application
+from app.domain.models import Application, ApplicationStatus
 from app.infrastructure.tables import ApplicationRecord, CandidateRecord, JobRecord
 
 
@@ -48,7 +47,7 @@ async def save_application(session: AsyncSession, application: Application) -> A
         status=application.status.value,
         match_score=application.match_score,
         package={"resume": application.resume_text, "cover_letter": application.cover_letter},
-        applied_at=datetime.now(timezone.utc) if application.status.value == "APPLIED" else None,
+        applied_at=datetime.now(UTC) if application.status is ApplicationStatus.APPLIED else None,
     )
     session.add(record)
     await session.commit()

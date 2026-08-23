@@ -10,7 +10,13 @@ from app.agents.qualification import score_job
 from app.core.auth import require_bearer
 from app.domain.models import Candidate, Job, JobScore
 from app.infrastructure.database import get_db
-from app.services.applications import approve_application, create_application, get_application, list_applications, mark_applied
+from app.services.applications import (
+    approve_application,
+    create_application,
+    get_application,
+    list_applications,
+    mark_applied,
+)
 from app.services.authentication import authenticate_user, register_user
 from app.services.documents import extract_candidate_signals, extract_text
 from app.services.generation import generate_cover_letter, generate_resume

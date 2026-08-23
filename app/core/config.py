@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
     max_upload_bytes: int = 5_000_000
     job_search_limit: int = 50
-    jwt_secret: str = "change-me-in-production"
+    jwt_secret: str = "change-me-in-production-use-a-32-byte-minimum-secret"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60
     auth_bootstrap_email: str = ""

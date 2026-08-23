@@ -5,7 +5,8 @@ from uuid import UUID, uuid4
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, Float, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.database import Base
@@ -36,7 +37,7 @@ class CandidateChunkRecord(Base):
     candidate_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), index=True)
     content: Mapped[str] = mapped_column(Text)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(1536))
-    metadata: Mapped[dict] = mapped_column(JSONB, default=dict)
+    chunk_metadata: Mapped[dict] = mapped_column("metadata", JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

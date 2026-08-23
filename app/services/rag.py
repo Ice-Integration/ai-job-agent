@@ -54,7 +54,7 @@ class CandidateRAG:
         session.add_all(
             CandidateChunkRecord(
                 id=uuid4(), candidate_id=candidate_id, content=content,
-                embedding=embedding, metadata={"type": "candidate_profile"}
+                embedding=embedding, chunk_metadata={"type": "candidate_profile"}
             )
             for content, embedding in zip(chunks, embeddings, strict=True)
         )

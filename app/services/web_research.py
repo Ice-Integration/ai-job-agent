@@ -28,11 +28,11 @@ async def fetch_job_url(url: str) -> Job:
 
 
 def _title(html: str) -> str:
-    match = re.search(r"<title[^>]*>(.*?)</title>", html, flags=re.I | re.S)
+    match = re.search(r"<title[^>]*>(.*?)</title>", html, flags=re.IGNORECASE | re.DOTALL)
     return re.sub(r"\s+", " ", match.group(1)).strip() if match else ""
 
 
 def _html_to_text(html: str) -> str:
-    text = re.sub(r"<(script|style|noscript)[^>]*>.*?</\1>", " ", html, flags=re.I | re.S)
+    text = re.sub(r"<(script|style|noscript)[^>]*>.*?</\1>", " ", html, flags=re.IGNORECASE | re.DOTALL)
     text = re.sub(r"<[^>]+>", " ", text)
     return re.sub(r"\s+", " ", text).strip()

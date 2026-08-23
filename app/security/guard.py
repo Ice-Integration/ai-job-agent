@@ -12,5 +12,5 @@ SUSPICIOUS_PATTERNS = [
 
 
 def inspect_text(text: str) -> tuple[bool, list[str]]:
-    findings = [pattern for pattern in SUSPICIOUS_PATTERNS if re.search(pattern, text, flags=re.I)]
+    findings = [pattern for pattern in SUSPICIOUS_PATTERNS if re.search(pattern, text, flags=re.IGNORECASE)]
     return not findings, findings

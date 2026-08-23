@@ -10,6 +10,7 @@ def test_password_hash_round_trip() -> None:
 
 def test_access_token_contains_subject() -> None:
     import jwt
+
     from app.core.config import get_settings
 
     token = create_access_token("candidate-1")

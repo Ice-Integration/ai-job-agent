@@ -6,4 +6,3 @@ def test_scheduler_registers_discovery_job() -> None:
     jobs = scheduler.get_jobs()
     assert len(jobs) == 1
     assert jobs[0].id == "job-discovery"
-    scheduler.shutdown(wait=False)

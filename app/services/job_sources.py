@@ -66,7 +66,17 @@ def infer_remote_countries(text: str) -> list[str]:
 
 def classify_sponsorship(text: str) -> SponsorshipStatus:
     value = re.sub(r"\s+", " ", text.lower())
-    if any(p in value for p in ["no sponsorship", "without sponsorship", "will not sponsor", "sponsorship is not available"]):
+    if any(
+        p in value
+        for p in [
+            "no sponsorship",
+            "without sponsorship",
+            "will not sponsor",
+            "sponsorship is not available",
+            "do not offer visa sponsorship",
+            "does not offer visa sponsorship",
+        ]
+    ):
         return SponsorshipStatus.NO
     if any(p in value for p in ["visa sponsorship available", "will sponsor", "sponsorship provided"]):
         return SponsorshipStatus.CONFIRMED

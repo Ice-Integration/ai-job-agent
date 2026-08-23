@@ -19,6 +19,13 @@ class SponsorshipStatus(StrEnum):
     NO = "NO"
 
 
+class ApplicationStatus(StrEnum):
+    READY = "ready"
+    APPROVED = "approved"
+    APPLIED = "applied"
+    REJECTED = "rejected"
+
+
 class Candidate(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     name: str
@@ -64,3 +71,14 @@ class JobScore(BaseModel):
     missing_requirements: list[str] = Field(default_factory=list)
     evidence: list[Evidence] = Field(default_factory=list)
     confidence: float = Field(ge=0, le=1)
+
+
+class Application(BaseModel):
+    id: UUID = Field(default_factory=uuid4)
+    candidate_id: UUID
+    job_id: UUID
+    match_score: float = Field(ge=0, le=100)
+    resume_text: str = ""
+    cover_letter: str = ""
+    approval_required: bool = True
+    status: ApplicationStatus = ApplicationStatus.READY

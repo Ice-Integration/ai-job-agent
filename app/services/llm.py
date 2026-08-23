@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
 from openai import AsyncOpenAI
+from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
 from app.domain.models import Candidate, Job

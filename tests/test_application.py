@@ -1,7 +1,8 @@
-import pytest
 from uuid import uuid4
 
-from app.services.application import ApprovalService, ApplicationDraft, ApplicationStatus
+import pytest
+
+from app.services.application import ApplicationDraft, ApplicationStatus, ApprovalService
 
 
 def draft() -> ApplicationDraft:
